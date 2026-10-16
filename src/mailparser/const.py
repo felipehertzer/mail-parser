@@ -61,6 +61,23 @@ _SENDGRID_DATE_RE = re.compile(
 
 EPILOGUE_DEFECTS = {"StartBoundaryNotFoundDefect"}
 
+# The codecs (codecs.lookup(...).name) of the charsets that write their text
+# as ASCII escape sequences: their 7-bit text is read in them, every other
+# charset's ASCII text is kept as it came.
+SEVEN_BIT_CHARSET_CODECS = frozenset(
+    {
+        "hz",
+        "iso2022_jp",
+        "iso2022_jp_1",
+        "iso2022_jp_2",
+        "iso2022_jp_2004",
+        "iso2022_jp_3",
+        "iso2022_jp_ext",
+        "iso2022_kr",
+        "utf-7",
+    }
+)
+
 ADDRESSES_HEADERS = set(["bcc", "cc", "delivered-to", "from", "reply-to", "to"])
 
 # These parts are always returned

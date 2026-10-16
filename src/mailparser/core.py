@@ -17,6 +17,7 @@ limitations under the License.
 """
 
 import base64
+import codecs
 import email
 import importlib.util
 import ipaddress
@@ -32,6 +33,7 @@ from mailparser.const import (
     EPILOGUE_DEFECTS,
     REGXIP,
     REGXIP6,
+    SEVEN_BIT_CHARSET_CODECS,
 )
 from mailparser.dates import date_diagnostics, parse_mail_date
 from mailparser.exceptions import MailParserRecursionError
@@ -570,6 +572,27 @@ class MailParser:
 
         return mail
 
+    @staticmethod
+    def _writes_text_as_ascii(charset):
+        """Whether a charset writes its text as ASCII escape sequences.
+
+        ISO-2022 (how Japanese and Korean mail is written), UTF-7 and HZ
+        do, so their 7-bit ASCII is not yet the text. Every other charset's
+        ASCII is kept as it came: an ASCII-compatible one reads it the same,
+        and another codec (UTF-16, unicode_escape) would hide or rewrite
+        text a sender wrote as plain ASCII.
+
+        Args:
+            charset (str): the part's declared charset.
+
+        Returns:
+            bool: True when the charset's text must still be decoded.
+        """
+        try:
+            return codecs.lookup(charset).name in SEVEN_BIT_CHARSET_CODECS
+        except (LookupError, TypeError):
+            return False
+
     def _decode_body_payload(self, part, charset, part_index):
         """Decode body text from original bytes and report charset recovery."""
         payload = part.get_payload(decode=True)
@@ -585,7 +608,8 @@ class MailParser:
                 except UnicodeEncodeError:
                     pass
                 else:
-                    return raw_text
+                    if not (raw_text.isascii() and self._writes_text_as_ascii(charset)):
+                        return raw_text
 
         if not payload:
             return ""
